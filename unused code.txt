@@ -1,5 +1,4 @@
 import random
-from tools.is_consistent import is_consistent
 from tools.updateSchedule import updateSchedule
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, udf
@@ -17,21 +16,17 @@ class CSPAlgorithm:
         
         self._program = set(programBlocksInfo for programBlocksInfo, _, _, _, _ in self.block_course_req_variable) # get unique program since i get all the course inside the program
         
-        self.instructor_handle_course = {}
         self.BlockSchedule = {program: {day: {time: True for time in self.time_range} for day in self.day_range} for program in self._program}
         self.InstructorSchedule = {instructor['_id']: {day: {time: True for time in self.time_range} for day in self.day_range} for instructor in self.instructors}
         self.RoomSchedule = {room['_id']: {day: {time: True for time in self.time_range} for day in self.day_range} for room in self.rooms}
         # print(self.RoomSchedule)
-        
-        #spark
-        self.spark = SparkSession.builder.appName("Scheduling").getOrCreate() #spark
+        self.spark = SparkSession.builder.appName("YourAppName").getOrCreate() #spark
 
     def update_Schedule(self, assignment):
-        self.instructor_handle_course = {}
         self.BlockSchedule = {program: {day: {time: True for time in self.time_range} for day in self.day_range} for program in self._program}
         self.InstructorSchedule = {instructor: {day: {time: True for time in self.time_range} for day in self.day_range} for instructor in self._instructor}
         self.RoomSchedule = {room: {day: {time: True for time in self.time_range} for day in self.day_range} for room in self._room}
-        updateSchedule(assignment, self.BlockSchedule, self.InstructorSchedule, self.RoomSchedule, self.instructor_handle_course)
+        updateSchedule(assignment, self.BlockSchedule, self.InstructorSchedule, self.RoomSchedule)
         
     def CSPSolver(self):
         assignment = {}
@@ -49,7 +44,7 @@ class CSPAlgorithm:
         
         for value in self.order_domain_value(var, assignment):
             assignment[var] = value
-            if is_consistent(assignment, self.course_with_IntructorID, self.room_type):
+            if self.is_consistent(assignment):
                 result = self.Backtracking(assignment)
                 if result is not None:
                     return result
@@ -68,21 +63,16 @@ class CSPAlgorithm:
             return sortToSChed[0]  # For simplicity, select the first unassigned course
         else:
             return None  # If all courses are assigned, return None
-      
-    #spark      
+            
     def order_domain_value(self, variable, assignment):
-        #separating the domain value in to a different node
-        domain_values_rdd = self.spark.sparkContext.parallelize(self.get_domain_values(variable, assignment))
-        #the function to be executed in every node
-        heuristic_udf = udf(lambda value: self.heuristic_function(value, variable, assignment), StringType())
-        #putting a name in every node
-        domain_df = domain_values_rdd.toDF(["value"])
-        #sorting the value base on their score
-        sorted_domain_df = domain_df.withColumn("heuristic_value", heuristic_udf(col("value"))).orderBy("heuristic_value", ascending=False)
-        #collecting the value and put it into list
-        sorted_domain_values = sorted_domain_df.select("value").rdd.flatMap(lambda x: x).collect()
+        # Get the domain values for the course variable
+        domain_values = self.get_domain_values(variable, assignment)
+        
+        # Sort the domain values based on a heuristic or strategy
+        sorted_domain_values = sorted(domain_values, key=lambda value: self.heuristic_function(value, variable, assignment))
         
         return sorted_domain_values
+
     
     def get_domain_values(self, variable, assignment):
         programBlocksInfo, courseCode, _, durationNum, schedNum = variable
@@ -92,11 +82,6 @@ class CSPAlgorithm:
         domain_values = []
         if schedNum == 1:
             for instructor in self.instructors:
-                #check if the instructor reach the limit of course to handle
-                if instructor in self.instructor_handle_course and courseCode not in self.instructor_handle_course[instructor]:
-                    if len(self.instructor_handle_course[instructor]) + 1 > 5:
-                        continue
-                    
                 for room in self.rooms:
                     for day in self.day_range:
                         for start_time in range(7, 32 - durationNum):
@@ -107,7 +92,7 @@ class CSPAlgorithm:
                                 
         if schedNum == 2:
             # getInstructor is for retriving the same instructor from schedule number 1 as a requirements
-            getInstructor = next((value[0] for key, value in assignment.items() if key[:2] == (programBlocksInfo, courseCode)), None)
+            getInstructor = next((value[0] for key, value in assignment.items if key[:2] == (programBlocksInfo, courseCode)), None)
             if getInstructor is None:
                 print('there is no assigned schedule number 1 in  ', (programBlocksInfo, courseCode))
                 
@@ -122,7 +107,7 @@ class CSPAlgorithm:
         
         if schedNum == 3:
             # getInstructor is for retriving the same instructor from schedule number 1 and 2 as a requirements
-            getInstructor = next((value[0] for key, value in assignment.items() if key[:2] == (programBlocksInfo, courseCode)), None)
+            getInstructor = next((value[0] for key, value in assignment.items if key[:2] == (programBlocksInfo, courseCode)), None)
             if getInstructor is None:
                 print('there is no assigned schedule number 1 or 2 in  ', (programBlocksInfo, courseCode))
                 
