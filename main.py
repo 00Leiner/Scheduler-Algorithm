@@ -23,10 +23,11 @@ class Scheduler:
         self.time_range = range(7, 32) #7am - 7pm
         self.course_with_IntructorID = instructor_specialization(fetch_course_data(ip), self.instructors) #for instructor specialization validation
         self.room_type = room_info(self.rooms) #for room type validation
+        # print(len(self.room_type))
         
     def CSP(self):
-        CSPAlgorithm(self.block_course_req_variable, self.instructors, self.rooms, self.day_range, self.time_range, self.course_with_IntructorID, self.room_type)
-
+        csp = CSPAlgorithm(self.block_course_req_variable, self.instructors, self.rooms, self.day_range, self.time_range, self.course_with_IntructorID, self.room_type)
+        csp.CSPSolver()
         
 if __name__ == "__main__":
     # app.run(host="0.0.0.0", port=5000)

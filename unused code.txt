@@ -65,6 +65,18 @@ class CSPAlgorithm:
             return None  # If all courses are assigned, return None
             
     def order_domain_value(self, variable, assignment):
+        ((((((# #separating the domain value in to a different node
+        # domain_values_rdd = self.spark.sparkContext.parallelize(self.get_domain_values(variable, assignment))
+        # #the function to be executed in every node
+        # heuristic_udf = udf(lambda value: self.heuristic_function(value, variable, assignment), StringType())
+        # #putting a name in every node
+        # domain_df = domain_values_rdd.toDF(["value"])
+        # #sorting the value base on their score
+        # sorted_domain_df = domain_df.withColumn("heuristic_value", heuristic_udf(col("value"))).orderBy("heuristic_value", ascending=False)
+        # #collecting the value and put it into list
+        # sorted_domain_values = sorted_domain_df.select("value").rdd.flatMap(lambda x: x).collect()
+        
+        # return sorted_domain_values))))))
         # Get the domain values for the course variable
         domain_values = self.get_domain_values(variable, assignment)
         

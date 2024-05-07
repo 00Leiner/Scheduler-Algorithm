@@ -1,9 +1,9 @@
 import random
 from tools.is_consistent import is_consistent
 from tools.updateSchedule import updateSchedule
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, udf
-from pyspark.sql.types import StringType
+# from pyspark.sql import SparkSession
+# from pyspark.sql.functions import col, udf
+# from pyspark.sql.types import StringType
 
 class CSPAlgorithm:
     def __init__(self, block_course_req_variable, instructors, rooms, day_range, time_range, course_with_IntructorID, room_type) -> None:
@@ -23,19 +23,20 @@ class CSPAlgorithm:
         self.RoomSchedule = {room['_id']: {day: {time: True for time in self.time_range} for day in self.day_range} for room in self.rooms}
         # print(self.RoomSchedule)
         
-        #spark
-        self.spark = SparkSession.builder.appName("Scheduling").getOrCreate() #spark
+        # #spark
+        # self.spark = SparkSession.builder.appName("Scheduling").getOrCreate() #spark
 
     def update_Schedule(self, assignment):
         self.instructor_handle_course = {}
         self.BlockSchedule = {program: {day: {time: True for time in self.time_range} for day in self.day_range} for program in self._program}
-        self.InstructorSchedule = {instructor: {day: {time: True for time in self.time_range} for day in self.day_range} for instructor in self._instructor}
-        self.RoomSchedule = {room: {day: {time: True for time in self.time_range} for day in self.day_range} for room in self._room}
+        self.InstructorSchedule = {instructor['_id']: {day: {time: True for time in self.time_range} for day in self.day_range} for instructor in self.instructors}
+        self.RoomSchedule = {room['_id']: {day: {time: True for time in self.time_range} for day in self.day_range} for room in self.rooms}
         updateSchedule(assignment, self.BlockSchedule, self.InstructorSchedule, self.RoomSchedule, self.instructor_handle_course)
         
     def CSPSolver(self):
         assignment = {}
-        self.Backtracking(assignment)
+        result = self.Backtracking(assignment)
+        print(result)
         return assignment
     
     def Backtracking(self, assignment):
@@ -43,10 +44,14 @@ class CSPAlgorithm:
         self.update_Schedule(assignment)
         
         if len(assignment) == len(self.block_course_req_variable):  # All variables assigned for both schedules
+            print('scheduling successfully')
             return assignment
         
         var = self.select_unassigned_variable(assignment)
         
+        if var is None:
+            return assignment  # All variables are assigned but the assignment is not complete
+
         for value in self.order_domain_value(var, assignment):
             assignment[var] = value
             if is_consistent(assignment, self.course_with_IntructorID, self.room_type):
@@ -71,16 +76,11 @@ class CSPAlgorithm:
       
     #spark      
     def order_domain_value(self, variable, assignment):
-        #separating the domain value in to a different node
-        domain_values_rdd = self.spark.sparkContext.parallelize(self.get_domain_values(variable, assignment))
-        #the function to be executed in every node
-        heuristic_udf = udf(lambda value: self.heuristic_function(value, variable, assignment), StringType())
-        #putting a name in every node
-        domain_df = domain_values_rdd.toDF(["value"])
-        #sorting the value base on their score
-        sorted_domain_df = domain_df.withColumn("heuristic_value", heuristic_udf(col("value"))).orderBy("heuristic_value", ascending=False)
-        #collecting the value and put it into list
-        sorted_domain_values = sorted_domain_df.select("value").rdd.flatMap(lambda x: x).collect()
+        # Get the domain values for the course variable
+        domain_values = self.get_domain_values(variable, assignment)
+        
+        # Sort the domain values based on a heuristic or strategy
+        sorted_domain_values = sorted(domain_values, key=lambda value: self.heuristic_function(value, variable, assignment), reverse=True)
         
         return sorted_domain_values
     
@@ -93,15 +93,16 @@ class CSPAlgorithm:
         if schedNum == 1:
             for instructor in self.instructors:
                 #check if the instructor reach the limit of course to handle
-                if instructor in self.instructor_handle_course and courseCode not in self.instructor_handle_course[instructor]:
-                    if len(self.instructor_handle_course[instructor]) + 1 > 5:
-                        continue
+                if instructor['_id'] in self.instructor_handle_course:
+                    if courseCode not in self.instructor_handle_course[instructor['_id']]: 
+                        if len(self.instructor_handle_course[instructor['_id']]) + 1 > 5: # do not exceed to maximum of 5 course instructor can handle 
+                            continue
                     
                 for room in self.rooms:
                     for day in self.day_range:
                         for start_time in range(7, 32 - durationNum):
                             end_time = start_time + durationNum
-                            if self.is_not_in_invalid_domain_cache(invalid_domain_cache, programBlocksInfo, instructor, room, day, start_time, end_time):
+                            if invalid_domain_cache is not None and self.is_not_in_invalid_domain_cache(invalid_domain_cache, programBlocksInfo, instructor['_id'], room['_id'], day, start_time, end_time):
                                 if self.is_valid_pairs(invalid_domain_cache, programBlocksInfo, instructor['_id'], room['_id'], day, start_time, end_time):
                                     domain_values.append((instructor['_id'], room['_id'], day, start_time, end_time)) #  format for value
                                 
@@ -116,9 +117,9 @@ class CSPAlgorithm:
                 for day in self.day_range:
                     for start_time in range(7, 32 - durationNum):
                         end_time = start_time + durationNum
-                        if self.is_not_in_invalid_domain_cache(invalid_domain_cache, programBlocksInfo, instructor, room, day, start_time, end_time):
-                            if self.is_valid_pairs(invalid_domain_cache, programBlocksInfo, instructor['_id'], room['_id'], day, start_time, end_time):
-                                domain_values.append((instructor['_id'], room['_id'], day, start_time, end_time)) #  format for value
+                        if invalid_domain_cache is not None and self.is_not_in_invalid_domain_cache(invalid_domain_cache, programBlocksInfo, instructor, room['_id'], day, start_time, end_time):
+                            if self.is_valid_pairs(invalid_domain_cache, programBlocksInfo, instructor, room['_id'], day, start_time, end_time):
+                                domain_values.append((instructor, room['_id'], day, start_time, end_time)) #  format for value
         
         if schedNum == 3:
             # getInstructor is for retriving the same instructor from schedule number 1 and 2 as a requirements
@@ -127,14 +128,13 @@ class CSPAlgorithm:
                 print('there is no assigned schedule number 1 or 2 in  ', (programBlocksInfo, courseCode))
                 
             instructor = getInstructor
-            room = 'Online' #schedule number 3 should be online class
             for day in self.day_range:
                 for start_time in range(7, 32 - durationNum):
                     end_time = start_time + durationNum
                         
-                    if self.is_not_in_invalid_domain_cache(invalid_domain_cache, programBlocksInfo, instructor, room, day, start_time, end_time):
-                        if self.is_valid_pairs(invalid_domain_cache, programBlocksInfo, instructor['_id'], room, day, start_time, end_time):
-                            domain_values.append((instructor['_id'], room['_id'], day, start_time, end_time)) #  format for value
+                    if invalid_domain_cache is not None and self.is_not_in_invalid_domain_cache(invalid_domain_cache, programBlocksInfo, instructor, 'Online', day, start_time, end_time):
+                        if self.is_valid_pairs(invalid_domain_cache, programBlocksInfo, instructor, 'Online', day, start_time, end_time):
+                            domain_values.append((instructor, 'Online', day, start_time, end_time)) #  format for value
                             
         return domain_values
     
@@ -143,13 +143,13 @@ class CSPAlgorithm:
         if (programBlocksInfo, day, start_time) in invalid_domain_cache or \
             (programBlocksInfo, day, end_time) in invalid_domain_cache:
                 return False
-        if (instructor, day, start_time) in invalid_domain_cache or \
-            (instructor, day, end_time) in invalid_domain_cache:
-                return False
-        if room != 'Online':
-            if (room, day, start_time) in invalid_domain_cache or \
-                (room, day, end_time) in invalid_domain_cache:
-                    return False    
+        # if (instructor, day, start_time) in invalid_domain_cache or \
+        #     (instructor, day, end_time) in invalid_domain_cache:
+        #         return False
+        # if room != 'Online':
+        #     if (room, day, start_time) in invalid_domain_cache or \
+        #         (room, day, end_time) in invalid_domain_cache:
+        #             return False    
         return True
     
     def is_valid_pairs(self, invalid_domain_cache, programBlocksInfo, instructor, room, day, start_time, end_time):
@@ -160,14 +160,14 @@ class CSPAlgorithm:
                 is_valid = False
                 invalid_domain_cache.add((programBlocksInfo, day, ts))
                 
-            if not self.InstructorSchedule[instructor][day][ts]:
-                is_valid = False    
-                invalid_domain_cache.add((instructor, day, ts))
+            # if not self.InstructorSchedule[instructor][day][ts]:
+            #     is_valid = False    
+            #     invalid_domain_cache.add((instructor, day, ts))
                 
-            if room != 'Online':
-                if not self.RoomSchedule[room][day][ts]:
-                    is_valid = False
-                    invalid_domain_cache.add((room, day, ts))
+            # if room != 'Online':
+            #     if not self.RoomSchedule[room][day][ts]:
+            #         is_valid = False
+            #         invalid_domain_cache.add((room, day, ts))
 
         return is_valid
        
@@ -223,7 +223,7 @@ class CSPAlgorithm:
             else:
                 break  # Exit loop if consecutive hours are broken
         
-        return (durationNum + consecutive_hours) <= 8 #if durationNum + consecutive_hours is less than 8 (4 hours) return true
+        return (durationNum + consecutive_hours) > 8 #if durationNum + consecutive_hours is less than 8 (4 hours) return true
     
     def instructor_hrs_limit(self, instructor_id, day, durationNum):
         if instructor_id not in self.InstructorSchedule:
@@ -236,7 +236,7 @@ class CSPAlgorithm:
         # Count the number of False values
         count_false = sum(1 for time_slot in schedule.values() if not time_slot)
         
-        return (count_false + durationNum) <= 12 #if num of false with number of duration to be occupied is less than 12 (6 hours) return true
+        return (count_false + durationNum) > 12 #if num of false with number of duration to be occupied is less than 12 (6 hours) return true
     
     def blocks_consecutive_hrs(self, programBlocksInfo, day, start_time, end_time, durationNum):
         if programBlocksInfo not in self.BlockSchedule:
@@ -259,7 +259,7 @@ class CSPAlgorithm:
             else:
                 break  # Exit loop if consecutive hours are broken
         
-        return (durationNum + consecutive_hours) <= 8 #if durationNum + consecutive_hours is less than 8 (4 hours) return true
+        return (durationNum + consecutive_hours) > 8 #if durationNum + consecutive_hours is less than 8 (4 hours) return true
     
     def instructor_specialization(self, instructor_id, courseCode):
         if instructor_id not in self.course_with_IntructorID[courseCode]:
