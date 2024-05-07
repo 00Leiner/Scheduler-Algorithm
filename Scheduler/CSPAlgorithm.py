@@ -146,10 +146,10 @@ class CSPAlgorithm:
         # if (instructor, day, start_time) in invalid_domain_cache or \
         #     (instructor, day, end_time) in invalid_domain_cache:
         #         return False
-        # if room != 'Online':
-        #     if (room, day, start_time) in invalid_domain_cache or \
-        #         (room, day, end_time) in invalid_domain_cache:
-        #             return False    
+        if room != 'Online':
+            if (room, day, start_time) in invalid_domain_cache or \
+                (room, day, end_time) in invalid_domain_cache:
+                    return False    
         return True
     
     def is_valid_pairs(self, invalid_domain_cache, programBlocksInfo, instructor, room, day, start_time, end_time):
@@ -164,10 +164,10 @@ class CSPAlgorithm:
             #     is_valid = False    
             #     invalid_domain_cache.add((instructor, day, ts))
                 
-            # if room != 'Online':
-            #     if not self.RoomSchedule[room][day][ts]:
-            #         is_valid = False
-            #         invalid_domain_cache.add((room, day, ts))
+            if room != 'Online':
+                if not self.RoomSchedule[room][day][ts]:
+                    is_valid = False
+                    invalid_domain_cache.add((room, day, ts))
 
         return is_valid
        
