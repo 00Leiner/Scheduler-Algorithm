@@ -1,4 +1,5 @@
 import random
+from printer.printer_function import printBlocksScehdule, printInstructorScehdule, printRoomScehdule
 from tools.is_consistent import is_consistent
 from tools.updateSchedule import updateSchedule
 # from pyspark.sql import SparkSession
@@ -36,8 +37,8 @@ class CSPAlgorithm:
     def CSPSolver(self):
         assignment = {}
         result = self.Backtracking(assignment)
-        print(result)
-        return assignment
+        printRoomScehdule(result)
+        return result
     
     def Backtracking(self, assignment):
         #update schedule for their availability
@@ -53,13 +54,15 @@ class CSPAlgorithm:
             return assignment  # All variables are assigned but the assignment is not complete
 
         for value in self.order_domain_value(var, assignment):
+            
             assignment[var] = value
+            
             if is_consistent(assignment, self.course_with_IntructorID, self.room_type):
                 result = self.Backtracking(assignment)
                 if result is not None:
                     return result
-            else:
-                del assignment[var]
+                
+            del assignment[var]
                 
         return None
         
@@ -73,8 +76,7 @@ class CSPAlgorithm:
             return sortToSChed[0]  # For simplicity, select the first unassigned course
         else:
             return None  # If all courses are assigned, return None
-      
-    #spark      
+       
     def order_domain_value(self, variable, assignment):
         # Get the domain values for the course variable
         domain_values = self.get_domain_values(variable, assignment)
@@ -177,31 +179,40 @@ class CSPAlgorithm:
         
         score = 0
         
+        if not self.instructor_overlap(instructor_id, day, start_time, end_time):
+            score -= 90 #percent
+        
         if not self.instructor_consecutive_hrs(instructor_id, day, start_time, end_time, durationNum): #check if the instructor has rest or don't have
-            score -= 1
+            score -= 50 #percent
             
         if not self.instructor_hrs_limit(instructor_id, day, durationNum): #check if the instructor daily hours limit is respected
-            score -= 1
+            score -= 40 #percent
             
         if not self.blocks_consecutive_hrs(programBlocksInfo, day, start_time, end_time, durationNum): #check if the block have rest or don't have
-            score -= 1
+            score -= 70 #percent
             
         if not self.instructor_specialization(instructor_id, courseCode): #check if the course is not specialized by intructor
-            score -= 1
+            score -= 20 #percent
             
         if not self.room_type_validation(room_id, courseRoomType): #check if the requirements for course room type is respected
-            score -= 1
+            score -= 20 #percent
         
         if schedNum != 1:
             if not self.course_schedule(programBlocksInfo, courseCode, schedNum, day, assignment): #check if the schedule1,2 and if have schedule 3 contains atleast 1 day gap in between 
-                score -= 1
+                score -= 20 #percent
                 
         if schedNum == 1: # i want to assign different instructor per course 
             if not self.instructor_not_been_scheduled(instructor_id, assignment):
-                score -= 1
+                score -= 20 #percent
             
         return score
         
+    def instructor_overlap(self, instructor, day, start_time, end_time):
+        for ts in range(start_time, end_time):
+            if not self.InstructorSchedule[instructor][day][ts]:
+                return False    
+        return True
+    
     def instructor_consecutive_hrs(self, instructor_id, day, start_time, end_time, durationNum):
         if instructor_id not in self.InstructorSchedule:
             return True

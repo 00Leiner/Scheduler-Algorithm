@@ -31,7 +31,7 @@ def is_consistent(assignmnet, course_with_IntructorID, room_type):
                     print('the day schedule for ', key, ' and ', key2, ' is scheduled at the same day of: ', value[2])
                     return False
           
-        # # check possible time conflict
+        # check possible time conflict
         # if value[0] in instructor_schedule: #instructor
         #     if value[2] in instructor_schedule[value[0]]:
         #         for ts in range(value[3], value[4]):

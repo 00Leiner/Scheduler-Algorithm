@@ -27,7 +27,11 @@ class Scheduler:
         
     def CSP(self):
         csp = CSPAlgorithm(self.block_course_req_variable, self.instructors, self.rooms, self.day_range, self.time_range, self.course_with_IntructorID, self.room_type)
-        csp.CSPSolver()
+        result = csp.CSPSolver()
+        return result
+    
+    def formatting(self):
+        pass
         
 if __name__ == "__main__":
     # app.run(host="0.0.0.0", port=5000)

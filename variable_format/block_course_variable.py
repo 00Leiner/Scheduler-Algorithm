@@ -21,6 +21,7 @@ def block_course_variable(program_blocks, curriculum):
                         'Laboratory',
                         4, # equivalent of 2 hours with 30mins
                         1))
+                    
                     _program_curriculum.append((
                         (student['program'], 
                         student['major'], 
