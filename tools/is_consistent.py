@@ -105,6 +105,7 @@ def is_consistent(assignmnet, course_with_IntructorID, room_type):
             instructo_max_course[value[0]] = set()
         if key[1] not in instructo_max_course[value[0]]:
             if len(instructo_max_course[value[0]]) + 1 > 5:
+                print(f"{value[0]} exceeds the maximum courses requirements per Instructor")
                 return False
             else:
                 instructo_max_course[value[0]].add(key[1])

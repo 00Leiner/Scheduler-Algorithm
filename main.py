@@ -32,6 +32,11 @@ class Scheduler:
         result = csp.CSPSolver()
         return result
     
+    def comments(self):
+        result = self.CSP()
+        
+        pass
+    
     def formatting(self):
         course_details = {course['code']: course for course in self.courses}
         teacher_details = {teacher['_id']: teacher for teacher in self.instructors}
