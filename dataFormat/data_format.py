@@ -1,49 +1,65 @@
-def formatting_data(result, students_details, courses_details, teachers_details, rooms_details):
-    formatted_data = []
+def formatting_data(result, course_details, teacher_details, room_details):
+    if result is None:
+        print('result is None')
+        return
     
-    for options_counter, sched in enumerate(result, start=1):
-        check_same_student = {}
-        programs = []
-
-        for (program_id, course_code), info in sched.items():
-            instructor_id = info['instructor']
-            room1 = info['schedule_1']['room']
-            room2 = info['schedule_2']['room']
-            day1 = get_day_name(info['schedule_1']['day'])
-            day2 = get_day_name(info['schedule_2']['day'])
-            time1 = get_time(info['schedule_1']['time'])
-            time2 = get_time(info['schedule_2']['time'])
-            
-
-            if program_id not in check_same_student:
-                check_same_student[program_id] = {
-                    "program": students_details[program_id]["program"],
-                    "major": students_details[program_id]["major"],
-                    "year": students_details[program_id]["year"],
-                    "semester": students_details[program_id]["semester"],
-                    "block": students_details[program_id]["block"],
-                    "sched": []
-                }
-            
-            student_schedule = {
-                "courseCode": course_code,
-                "courseDescription": courses_details[course_code]["description"],
-                "courseUnit": courses_details[course_code]["units"],
-                "day": f"{day1}/{day2}",
-                "time": f"{time1}/{time2}",
-                'room': f"{rooms_details[room1]['name']}/{rooms_details[room2]['name']}",
-                'instructor': f"{teachers_details[instructor_id]["fname"]}  {teachers_details[instructor_id]["sname"]}"
+    formatted = {
+        'programs': []
+    }
+    
+    for key, value in result.items():
+        (program, major, year, semester, block) = key[0]
+        course_code = key[1]
+        schedNum = key[4]
+        instructor = value[0]
+        room = value[1]
+        day = value[2]
+        start_time = value[3]
+        end_time = value[4]
+        
+        courseCode = course_details[course_code]['code']
+        courseDescription = course_details[course_code]['description']
+        courseUnit = course_details[course_code]['units']
+        fname = teacher_details[instructor]['fname']
+        sname = teacher_details[instructor]['sname']
+        roomName = room_details[room]['name'] if room != 'Online' else 'Online'
+        
+        # Find or create the program entry in formatted_data
+        program_entry = next((prog for prog in formatted['programs'] if prog['program'] == program and prog['major'] == major and prog['year'] == year and prog['semester'] == semester and prog['block'] == block), None)
+        if program_entry is None:
+            program_entry = {
+                'program': program,
+                'major': major,
+                'year': year,
+                'semester': semester,
+                'block': block,
+                'sched': []
             }
-            check_same_student[program_id]["sched"].append(student_schedule)
-
-        # Convert the dictionary into a list of programs
-        for program_id, program_details in check_same_student.items():
-            programs.append(program_details)
-
-        option = f"option {options_counter}"
-        formatted_data.append({"options": option, "programs": programs})
-
-    return formatted_data
+            formatted['programs'].append(program_entry)
+        
+        # Find or create the course entry in program_entry['sched']
+        course_entry = next((course for course in program_entry['sched'] if course['courseCode'] == course_code), None)
+        if course_entry is None:
+            course_entry = {
+                'courseCode': courseCode,
+                'courseDescription': courseDescription,
+                'courseUnit': courseUnit,
+                'instructor': f'{fname} {sname}',
+                'schedule': []
+            }
+            program_entry['sched'].append(course_entry)
+        
+        # Append the schedule details to course_entry['sched']
+        schedule_details = {
+            'schedNum': schedNum,
+            'room': roomName,
+            'day': get_day_name(day),
+            'startTime': format_time(start_time),
+            'endTime': format_time(end_time)
+        }
+        course_entry['schedule'].append(schedule_details)
+    
+    return formatted
 
 
 def get_day_name(day):
@@ -59,17 +75,9 @@ def get_day_name(day):
     except ValueError:
         return "Invalid Day"
     
-def get_time(hour):
-     start, end = hour
-     s = convert_to_12_hour_format(start)
-     e = convert_to_12_hour_format(end)
-     time = f"{s}-{e}"
-     return time
-
-def convert_to_12_hour_format(hour):
-    if hour == 12:
-        return "12pm"  # Special case for 12pm
-    elif hour > 12:
-        return f"{hour - 12}pm"
-    else:
-        return f"{hour}am"
+def format_time(time):
+  hour = 7 + (time - 7) // 2  # Calculate the hour component
+  minute = "30" if time % 2 == 0 else "00"  # Determine the minute component (either "00" or "30")
+  am_pm = "AM" if hour < 12 else "PM"  # Determine if it's AM or PM
+  hour = hour if hour <= 12 else hour - 12  # Convert to 12-hour format
+  return f"{hour}:{minute} {am_pm}"

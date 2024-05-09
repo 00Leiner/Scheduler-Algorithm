@@ -37,7 +37,7 @@ class CSPAlgorithm:
     def CSPSolver(self):
         assignment = {}
         result = self.Backtracking(assignment)
-        printRoomScehdule(result)
+        # printInstructorScehdule(result)
         return result
     
     def Backtracking(self, assignment):
@@ -180,16 +180,16 @@ class CSPAlgorithm:
         score = 0
         
         if not self.instructor_overlap(instructor_id, day, start_time, end_time):
-            score -= 90 #percent
+            score -= 100 #percent
         
         if not self.instructor_consecutive_hrs(instructor_id, day, start_time, end_time, durationNum): #check if the instructor has rest or don't have
-            score -= 50 #percent
+            score -= 60 #percent
             
         if not self.instructor_hrs_limit(instructor_id, day, durationNum): #check if the instructor daily hours limit is respected
             score -= 40 #percent
             
         if not self.blocks_consecutive_hrs(programBlocksInfo, day, start_time, end_time, durationNum): #check if the block have rest or don't have
-            score -= 70 #percent
+            score -= 90 #percent
             
         if not self.instructor_specialization(instructor_id, courseCode): #check if the course is not specialized by intructor
             score -= 20 #percent

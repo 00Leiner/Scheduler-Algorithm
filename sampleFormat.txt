@@ -1,0 +1,81 @@
+{
+    'option': option number,
+    'message': {
+        'programBlocks': [
+            {
+                'program': "BSCS",
+                'major': "BA",
+                'year': "1st",
+                'semester': "1st",
+                'block": "A"
+                'comments': [
+                    'here's where comment display',
+                    'here's where comment display',
+                    'here's where comment display'
+                ]
+            }
+        ],
+        'room': [
+            {
+                'name': "NB 300",
+                'type': "Laboratory",
+                'comments': [
+                    'here's where comment display',
+                    'here's where comment display',
+                    'here's where comment display'
+                ]
+            }
+        ],
+        'instructor': [
+            {
+                'fname': "Ronee",
+                'lname': "Edec",
+                'comments': [
+                    'here's where comment display',
+                    'here's where comment display',
+                    'here's where comment display'
+                ]
+            }
+        ]
+    }
+    'program': [
+        {
+            'program': "BSCS"
+            'major': "Data Science"
+            'year': "1st"
+            'semester':"1st"
+            'block': "B"
+            'sched': [
+                {
+                    'courseCode': "CC 1100"
+                    'courseDescription': "Introduction to Computing"
+                    'courseUnit': "5"
+                    instructor: "Prof  1"
+                    sched: [
+                        {    
+                            'schedNum': "1",
+                            'room': "NB 307",
+                            'day': "Wednesday",
+                            'startTime': "10am",
+                            'endTime': "1pm"
+                        },
+                        {    
+                            'schedNum': "2",
+                            'room': "NB 307",
+                            'day': "Wednesday",
+                            'startTime': "10am",
+                            'endTime': "1pm"
+                        },
+                        {    
+                            'schedNum': "3",
+                            'room': "NB 307",
+                            'day': "Wednesday",
+                            'startTime': "10am",
+                            'endTime': "1pm"
+                        },
+                    ]
+                }
+            ]
+        }
+    ]
+}

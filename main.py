@@ -1,5 +1,6 @@
 import requests
 from flask import Flask, jsonify
+from dataFormat.data_format import formatting_data
 from getData.student_data import fetch_student_data
 from getData.room_data import fetch_room_data
 from getData.teacher_data import fetch_teacher_data
@@ -23,6 +24,7 @@ class Scheduler:
         self.time_range = range(7, 32) #7am - 7pm
         self.course_with_IntructorID = instructor_specialization(fetch_course_data(ip), self.instructors) #for instructor specialization validation
         self.room_type = room_info(self.rooms) #for room type validation
+        self.courses = fetch_course_data(ip)
         # print(len(self.room_type))
         
     def CSP(self):
@@ -31,10 +33,46 @@ class Scheduler:
         return result
     
     def formatting(self):
-        pass
+        course_details = {course['code']: course for course in self.courses}
+        teacher_details = {teacher['_id']: teacher for teacher in self.instructors}
+        room_details = {room['_id']: room for room in self.rooms}
+        result = self.CSP()
+        formatted = formatting_data(result, course_details, teacher_details, room_details)
+        return formatted
+    
+app = Flask(__name__)
+class Fetching:
+    def __init__(self):
+        self.url = 'http://192.168.1.6:3000/Schedule/create'
+
+    def perform_post_request(self, data):
+        response = requests.post(self.url, json=data)
+
+        if response.status_code in [200, 201]:
+            return response
+        else:
+            print(f"Error in POST request. Status code: {response.status_code}")
+            print(response.text)
+            return response
+
+@app.route('/activate_csp_algorithm', methods=['POST'])
+def activate_csp_algorithm():
+    try:
+        scheduler = Scheduler()
+        result = scheduler.formatting()
+        
+        fetching_instance = Fetching()
+        response = fetching_instance.perform_post_request(result)
+        print(response.text)
+  
+        return jsonify({"status": "success", "message": "CSP algorithm activated successfully"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
         
 if __name__ == "__main__":
-    # app.run(host="0.0.0.0", port=5000)
-    scheduler = Scheduler()
-    s = scheduler.CSP()
+    app.run(host="0.0.0.0", port=5000)
+    # scheduler = Scheduler()
+    # s = scheduler.formatting()
     # print(s)
+    
+    
