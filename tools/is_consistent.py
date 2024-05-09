@@ -66,7 +66,7 @@ def is_consistent(assignmnet, course_with_IntructorID, room_type):
         
         # # check instructor and blocks if have rest and no rest
         # # Initialize consecutive hours counter
-        # blocks_consecutive_hours = 0
+        blocks_consecutive_hours = 0
         # instructor_consecutive_hours = 0
         
         # # Check consecutive hours before the given start time for instructor and blocks
@@ -74,24 +74,25 @@ def is_consistent(assignmnet, course_with_IntructorID, room_type):
         #     if ts in instructor_schedule[value[0]][value[2]]:
         #         instructor_consecutive_hours += 1
         #     else: break
-        # for ts in range(value[3] - 1, max(value[3] - 6, 7) - 1, -1):
-        #     if ts in blocks_schedule[key[0]][value[2]]:
-        #         blocks_consecutive_hours += 1
-        #     else: break
+        for ts in range(value[3] - 1, max(value[3] - 6, 7) - 1, -1):
+            if ts in blocks_schedule[key[0]][value[2]]:
+                blocks_consecutive_hours += 1
+            else: break
             
         # # Check consecutive hours after the given end time for instructor and blocks
         # for ts in range(value[4] - 1, min(value[4] + 6, 31)):
         #     if ts in instructor_schedule[value[0]][value[2]]:
         #         instructor_consecutive_hours += 1
         #     else: break
-        # for ts in range(value[4] - 1, min(value[4] + 6, 31)):
-        #     if ts in blocks_schedule[key[0]][value[2]]:
-        #         blocks_consecutive_hours += 1
-        #     else: break
+        for ts in range(value[4] - 1, min(value[4] + 6, 31)):
+            if ts in blocks_schedule[key[0]][value[2]]:
+                blocks_consecutive_hours += 1
+            else: break
             
-        # # Check if more than 4 hours of consecutive hours are scheduled within the day for instructor AND BLOCKS
-        # if (blocks_consecutive_hours + key[3]) > 8:
-        #     print("block: ", key[0], " have consecutive time of: ", blocks_consecutive_hours / 2,'hrs', ' in day: ', value[2])
+        # Check if more than 4 hours of consecutive hours are scheduled within the day for instructor AND BLOCKS
+        if (blocks_consecutive_hours + key[3]) > 8:
+            print("block: ", key[0], " have consecutive time of: ", blocks_consecutive_hours / 2,'hrs', ' in day: ', value[2])
+            return False
         # if (instructor_consecutive_hours + key[3]) > 8:
         #     print("block: ", value[0], " have consecutive time of: ", instructor_consecutive_hours / 2,'hrs', ' in day: ', value[2])
         

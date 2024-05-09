@@ -70,9 +70,9 @@ def activate_csp_algorithm():
         return jsonify({"status": "error", "message": str(e)})
         
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-    # scheduler = Scheduler()
-    # s = scheduler.formatting()
-    # print(s)
+    # app.run(host="0.0.0.0", port=5000)
+    scheduler = Scheduler()
+    s = scheduler.formatting()
+    print(s)
     
     
